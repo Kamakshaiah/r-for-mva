@@ -1,0 +1,39 @@
+
+Sub arithmeticAvg()
+
+Dim acol As Long
+
+acol = ActiveCell.Column
+MsgBox WorksheetFunction.Average(Columns(acol))
+
+End Sub
+
+Sub ArithmeticAvg()
+
+Dim iCol As Long
+
+On Error GoTo errorHandler
+
+iCol = ActiveCell.Column
+MsgBox WorksheetFunction.Average(Columns(iCol))
+
+Exit Sub
+
+errorHandler:
+MsgBox "make sure to select a valid range of cells"
+
+End Sub
+
+Function USERAVG(rng As Range)
+Dim cell As Range, total As Long, cnt As Integer
+
+For Each cell In rng
+
+total = total + cell.Value
+cnt = cnt + 1
+
+Next cell
+
+USERAVG = total / cnt
+
+End Function
