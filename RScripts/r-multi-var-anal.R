@@ -44,9 +44,41 @@ cat('Hi!', name, ', Your age is', age)
 
 # c operator
 # colon operator
-# vectors
+
+# vectors (never needs conditionals)
+
+x <- round(rnorm(10)*10, )
+x
+as.matrix(x)
+
+mean(x) #may be -ve
+
+total=0
+cnt = 0
+for (i in 1:length(x)){
+  if (x[i] > 0){
+    print(x[i])
+    total = total+x[i]
+    cnt = cnt+1
+  }
+}
+total/cnt
+
+
+x[x>0] # +ves
+x[!x>0] # -ves
+
+mean(x[x>0]) # only +ves
+
 # factors
 # list
+funs <- list(
+  half = function(x) x / 2,
+  double = function(x) x * 2
+)
+
+funs$double(10) # alist can have functions inside
+#> [1] 20
 # matrices
 # data frames
 
@@ -115,6 +147,53 @@ repeat{
     break
   }
 }
+
+x <- matrix(round(rnorm(30)*10), 10, 3)
+x <- data.frame(x)
+dim(x)
+names(x)
+head(x)
+
+for (i in 1:dim(x)[2]){
+  print(c(mean(x[, i]), sd(x[, i])))
+}
+
+# APPLY FUNCTIONS
+
+# with and within
+
+x <- data.frame(matrix(round(runif(16)*10, ), 4, 4))
+names(x)
+dim(x)
+head(x)
+
+with(x, X1+X2)
+within(x, X3 <- X1+X2)
+
+# apply functions 
+
+apply(x, 2, mean)
+
+datalist <- list(a=1:10, b=rnorm(10), c=as.factor(sample(c('m', 'f'), 10, replace = T)))
+length(datalist$a) # dim() will not work
+length(datalist$b) # dim() will not work
+length(datalist$c) # dim() will not work
+
+lapply(datalist, summary)
+sapply(datalist, summary) # list
+sapply(x, summary) # data frame
+
+# datamat <- matrix(1:16, 4, 4)
+# dim(datamat)
+# head(datamat)
+# sapply(t(datamat), mean) # data frame
+
+dataset <- data.frame(age=abs(round(rnorm(10)*10, )), gender = sample(c('male', 'female'), 10, replace = T))
+dim(dataset)
+names(dataset)
+head(dataset)
+
+tapply(dataset$age, dataset$gender, mean)
 
 # FUNCTIONS
 
@@ -601,15 +680,179 @@ y <- fit$points[, 2]
 plot(x, y, xlab="Dimension 1", ylab="Dimension 2", main="Non-Metric MDS", type="n")
 text(x, y, labels = indianpoverty[, 1], cex=.7)
 
+# FACTOR ANALYSIS 
+
+cronBachAlpha <- function(x){
+  covarmat <- cov(x)
+  diagele <- diag(covarmat)
+  ltele <- covarmat[lower.tri(covarmat)] 
+  k <- dim(covarmat)[1]
+  out <- ((k^2)*(sum(ltele/length(ltele))))/(sum(diagele)+sum(ltele))
+  return(out)
+}
+cronBachAlpha(multivardata[, 5:13])
 
 
+# CFA
+
+library(lavaan)
+
+model <- '
+  # latent variable definitions
+    ind60 =~ x1 + x2 + x3
+    dem60 =~ y1 + y2 + y3 + y4
+    dem65 =~ y5 + y6 + y7 + y8
+  # regressions
+    dem60 ~ ind60
+    dem65 ~ ind60 + dem60
+  # residual (co)variances
+    y1 ~~ y5
+    y2 ~~ y4 + y6
+    y3 ~~ y7
+    y4 ~~ y8
+    y6 ~~ y8
+'
+
+fit <- sem(model, 
+           data = PoliticalDemocracy)
+data.frame(coef(fit))
+summary(fit)
+
+fit_summary <- data.frame(summary(fit)$PE)
+typeof(fit_summary)
+head(fit_summary)
+
+library('semPlot')
+semPaths(fit,"std",edge.label.cex=0.5, curvePivot = TRUE)
 
 
+multivardata <- read.csv('D:\\Work\\Books\\MultiVarAnal_\\MultiVarAnal\\Data\\multivardata.csv')
+names(multivardata)
+dim(multivardata)
+
+model <- '
+
+  # latent variables 
+  
+  satisfaction =~ sat1 + sat2 + sat3 
+  perception =~ per1 + per2 + per3 
+  attitude =~ att1 + att2 + att3  
+  
+  # direct relationship 
+  
+  satisfaction ~ c*perception 
+  
+  # mediator 
+  
+  attitude ~ a*perception 
+	satisfaction ~ b*attitude 
+	
+	# indirect effect 
+	
+	ab := a*b
+	
+  # total effect 
+  
+  total := c+(a*b) 
+  
+'
+
+fit <- sem(model, data = multivardata)
+fit 
+fit_summary <- summary(fit)
+sem_output <- data.frame(fit_summary$PE)
+tail(sem_output)
 
 
+summary(mvsem.fit <- cfa(model, multivardata, std.lv = TRUE, orthogonal = TRUE), fit.measures = TRUE)
+mvsem.fit
+
+pchisq(143.452, 24, ncp = 0, lower.tail = FALSE) # actual p-value
+(ncp.close <- .0025 * 24 * (30 - 1))
+pchisq(143.452, 24, ncp = ncp.close, lower.tail = FALSE) # close-fit p-value
+(ncp.mediocre <- .0064 * 24 * (30 - 1))
+pchisq(143.452, 24, ncp = ncp.mediocre, lower.tail = FALSE) # close-fit p-value
+
+# Political democracy data set
+
+pchisq(38.125, 35, ncp = 0, lower.tail = FALSE) # actual p-value
+(ncp.close <- .0025 * 35 * (75 - 1))
+pchisq(38.125, 35, ncp = ncp.close, lower.tail = FALSE) # close-fit p-value
+(ncp.mediocre <- .0064 * 35 * (75 - 1))
+pchisq(38.125, 35, ncp = ncp.mediocre, lower.tail = FALSE) # close-fit p-value
+
+library(semPlot)
+semPaths(mvsem.fit, "std", edge.label.cex = 0.5, curvePivot = TRUE, rotation=4)
 
 
+model <- '
+
+  # latent variables 
+  
+  satisfaction =~ sat1 + sat2 + sat3 
+  perception =~ per1 + per2 + per3 
+  attitude =~ att1 + att2 + att3  
+  
+  # direct relationship 
+  
+  satisfaction ~ c*attitude 
+  
+  # mediator 
+  
+  perception ~ a*attitude 
+	satisfaction ~ b*perception 
+	
+	# indirect effect 
+	
+	ab := a*b
+	
+  # total effect 
+  
+  total := c+(a*b) 
+  
+'
+summary(mvsem.fit <- cfa(model, multivardata, std.lv = TRUE, orthogonal = TRUE), fit.measures = TRUE)
+mvsem.fit # changing relationships - no use
 
 
+# simulation of data
+library(mvtnorm)
+R <- matrix(0, 9, 9)
+length(R[upper.tri(R)])
+R[upper.tri(R)] <- runif(36)
+diag(R) <- 1
+R <- cov2cor(t(R) %*% R)
+round(R, 4) # population correlations
+data <- rmvnorm(1000, rep(0, 9), R)
+round(cor(data), 4)
+write.csv(data, 'D:\\Work\\Books\\MultiVarAnal_\\MultiVarAnal\\multivardatasim.csv')
 
+multivardatasim <- data.frame(data[1:100, ])
 
+model <- '
+
+  # latent variables 
+  
+  satisfaction =~ X1 + X2 + X3 
+  perception =~ X4 + X5 + X6 
+  attitude =~ X7 + X8 + X9  
+  
+  # direct relationship 
+  
+  satisfaction ~ c*perception 
+  
+  # mediator 
+  
+  attitude ~ a*perception
+	satisfaction ~ b*attitude 
+	
+	# indirect effect 
+	
+	ab := a*b
+	
+  # total effect 
+  
+  total := c+(a*b) 
+'
+summary(mvsem.fit <- cfa(model, multivardatasim, std.lv = TRUE, orthogonal = TRUE), fit.measures = TRUE)
+mvsem.fit # simulated data - no use
